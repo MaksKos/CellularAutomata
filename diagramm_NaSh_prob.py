@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
-from modules.models import NaSh
+from modules.models import NaSh, get_flow
+from joblib import Parallel, delayed
+
+CORE = 5
 
 n_cells = 10000
 time_stabil = 10*n_cells
@@ -10,16 +13,14 @@ velosity_max = 5
 n_density = 100
 
 density = np.linspace(0, 1, n_density+1)[1:]
+cars = np.int_(n_cells*density)
+"""
 flow = np.zeros_like(density)
-n_cars = np.int_(n_cells*density)
-
 for i in range(n_density):
-    print(f"step: {i}/{n_density}")
-    model = NaSh(n_cells, n_cars[i])
-    model.set_slow_probability(probability)
-    model.system_stabilization(time_stabil)
-    model.system_research(time_research)
-    flow[i] = model.avarage_flow()
+    flow[i] = get_flow(n_cars[i], n_cells, probability,
+                        time_stabil, time_research)
+"""
+flow =  Parallel(n_jobs=CORE)(delayed(get_flow)(car, n_cells, probability, time_stabil, time_research ) for car in cars)
 
 result = {
     'density': density,

@@ -116,3 +116,17 @@ class NaShAuto():
         for step in range(road.shape[0]):
             road[step][self.matrix_position[step]] = self.matrix_velosity[step]
         return road
+
+def get_flow(n_cars, n_cells, prob, time_s, time_r):
+    model = NaSh(n_cells, n_cars)
+    model.set_slow_probability(prob)
+    model.system_stabilization(time_s)
+    model.system_research(time_r)
+    return model.avarage_flow()
+
+def get_flow_auto(n_cars, n_adr, n_cells, prob, time_s, time_r):
+    model = NaShAuto(n_cells, n_cars-n_adr, n_adr)
+    model.set_slow_probability(prob)
+    model.system_stabilization(time_s)
+    model.system_research(time_r)
+    return model.avarage_flow()
