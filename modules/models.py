@@ -73,7 +73,7 @@ class NaShAuto():
         self.v_max = np.full(self.n_cars, self._velosity_max, dtype=int)
         self.v_min = np.zeros(self.n_cars, dtype=int)
         self.stability = False
-        adr_position = np.random.choice(self.n_cars-1, size=n_adr, replace=False)
+        adr_position = np.random.choice(self.n_cars, size=n_adr, replace=False)
         self.is_driver = np.ones_like(self.car_position)
         self.is_driver[adr_position] = np.zeros(n_adr)
 
