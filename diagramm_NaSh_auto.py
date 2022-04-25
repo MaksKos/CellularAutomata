@@ -3,6 +3,8 @@ import numpy as np
 from modules.models import NaShAuto, get_flow
 
 CORE = 5
+print("Input auto car proportion [0...1]:")
+auto_car = float(input())
 
 n_cells = 10000
 time_stabil = 10*n_cells
@@ -11,7 +13,6 @@ velosity_max = 5
 n_density = 100
 
 probability = 0.5
-auto_car = 0.5
 
 density = np.linspace(0, 1, n_density+1)[1:]
 cars = np.int_(n_cells*density)

@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import pandas as pd
 import numpy as np
 from modules.models import NaSh, get_flow
@@ -5,10 +6,12 @@ from joblib import Parallel, delayed
 
 CORE = 5
 
+print("Input slow probability [0...1]:")
+probability = float(input())
+
 n_cells = 10000
 time_stabil = 10*n_cells
 time_research = 100
-probability = 0.5
 velosity_max = 5
 n_density = 100
 
@@ -20,7 +23,7 @@ for i in range(n_density):
     flow[i] = get_flow(n_cars[i], n_cells, probability,
                         time_stabil, time_research)
 """
-flow =  Parallel(n_jobs=CORE)(delayed(get_flow)(car, n_cells, probability, time_stabil, time_research ) for car in cars)
+flow =  Parallel(n_jobs=CORE, verbose=1)(delayed(get_flow)(car, n_cells, probability, time_stabil, time_research ) for car in cars)
 
 result = {
     'density': density,
