@@ -4,8 +4,6 @@ version 1.0
 
 from tkinter import N
 import numpy as np
-from tqdm import tqdm
-import numba
 
 class NaSh():
 
@@ -39,14 +37,14 @@ class NaSh():
         self._slow_probability = p
 
     def system_stabilization(self, n_step:int):
-        for _ in tqdm(range(n_step)):
+        for _ in range(n_step):
             self.step()
         self.stability = True
 
     def system_research(self, n_step:int): 
         self.matrix_position = np.zeros((n_step, self.n_cars), dtype=int)
         self.matrix_velosity = np.zeros((n_step, self.n_cars), dtype=int)
-        for step in tqdm(range(n_step)):
+        for step in range(n_step):
             self.matrix_position[step] = self.car_position
             self.step()
             self.matrix_velosity[step] = self.car_velosity
@@ -96,14 +94,14 @@ class NaShAuto():
         self._slow_probability = p
 
     def system_stabilization(self, n_step:int):
-        for _ in tqdm(range(n_step)):
+        for _ in range(n_step):
             self.step()
         self.stability = True
 
     def system_research(self, n_step:int): 
         self.matrix_position = np.zeros((n_step, self.n_cars), dtype=int)
         self.matrix_velosity = np.zeros((n_step, self.n_cars), dtype=int)
-        for step in tqdm(range(n_step)):
+        for step in range(n_step):
             self.matrix_position[step] = self.car_position
             self.step()
             self.matrix_velosity[step] = self.car_velosity
@@ -116,3 +114,17 @@ class NaShAuto():
         for step in range(road.shape[0]):
             road[step][self.matrix_position[step]] = self.matrix_velosity[step]
         return road
+
+def get_flow(n_cars, n_cells, prob, time_s, time_r):
+    model = NaSh(n_cells, n_cars)
+    model.set_slow_probability(prob)
+    model.system_stabilization(time_s)
+    model.system_research(time_r)
+    return model.avarage_flow()
+
+def get_flow_auto(n_cars, n_adr, n_cells, prob, time_s, time_r):
+    model = NaShAuto(n_cells, n_cars-n_adr, n_adr)
+    model.set_slow_probability(prob)
+    model.system_stabilization(time_s)
+    model.system_research(time_r)
+    return model.avarage_flow()
