@@ -2,7 +2,6 @@
 version 1.0
 """
 
-from tkinter import N
 import numpy as np
 
 class NaSh():
