@@ -13,7 +13,7 @@ n_cars = int(n_cells*density)
 v_max = np.full(n_cars, velosity_max, dtype=int)
 v_min = np.zeros(n_cars, dtype=int)
 
-car_position = np.sort(np.random.choice(n_cells-1, size=n_cars, replace=False))
+car_position = np.sort(np.random.choice(n_cells, size=n_cars, replace=False))
 car_velosity = np.zeros(n_cars, dtype=int)
 distance = np.zeros(n_cars, dtype=int)
 
