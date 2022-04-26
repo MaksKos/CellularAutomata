@@ -17,7 +17,7 @@ time_stabil = 10*n_cells
 time_research = 100
 probability = 0.5
 
-density = np.linspace(0, 1, n_density+1)[1:]
+density = np.linspace(0, 1, n_density+1)
 cars = np.int_(n_cells*density)
 n_adr = np.int_(cars*auto_car)
 
