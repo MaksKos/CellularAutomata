@@ -1,14 +1,14 @@
-import pandas as pd
+"""Programm for draw x-t diagramm"""
 import numpy as np
-from modules.models import NaSh, get_flow, NaShAuto
+from modules.models import NaSh, NaShAuto
 import matplotlib.pyplot as plt
 
 n_cells = 1000
 time0 = 10*n_cells
 tau = 1000
 
-density = 0.2
-auto_car = 0.8
+density = 0.4
+auto_car = 0
 
 n_cars = int(n_cells*density)
 n_adr = int(n_cars*auto_car)
@@ -34,9 +34,11 @@ bar_pic=plt.scatter(grid[0], grid[1], marker ='s', c = road_map, cmap = 'RdYlGn'
 plt.xlim(0, 1000)
 plt.ylim(0, 1000)
 plt.gca().invert_yaxis()
-plt.title(f"x-t diagramm with density {density} and adr {auto_car}")
+plt.colorbar()
+plt.clim(0, 5)
+plt.title(f"x-t diagramm with density {density}")
 plt.xlabel(r'$\mathrm{cells}$',  fontsize = fs)
 plt.ylabel(r'$\mathrm{time}$',  fontsize = fs)
 #plt.grid(linewidth=0.5)
 plt.show()
-fig.savefig(f'data/x_t_{density}.jpg', dpi = 400, pad_inches=0.1, format='jpg')
+fig.savefig(f'data/x_t_{density}.jpg', dpi = 400,pad_inches=0.1, format='jpg', bbox_inches='tight')

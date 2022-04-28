@@ -1,3 +1,4 @@
+"""This programm for calculate fundamebtal diagramm with different slow down probability"""
 import joblib
 import pandas as pd
 import numpy as np
@@ -14,9 +15,9 @@ n_cells = 10_000
 n_density = 100
 
 time_stabil = 10*n_cells
-time_research = 100
+time_research = 101
 
-density = np.linspace(0, 1, n_density+1)
+density = np.linspace(0, 1, n_density)
 cars = np.int_(n_cells*density)
 
 flow =  Parallel(n_jobs=CORE, verbose=10)\
