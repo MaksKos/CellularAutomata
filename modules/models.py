@@ -2,7 +2,9 @@
 version 1.0
 """
 
+from tkinter import N
 import numpy as np
+from regex import I
 from sympy import re
 
 class NaSh():
@@ -193,7 +195,7 @@ class StochasticNFS():
         self.car_position = np.sort(np.random.choice(n_cells, size=n_cars, replace=False))
         self.car_position_previous = self.car_position.copy()
         self.car_velosity = np.zeros(n_cars, dtype=int)
-        self.anticipation = np.random.choice(self._S, size=self.n_cars, p=[1-self._r, self._r])
+        #self.anticipation = np.random.choice(self._S, size=self.n_cars, p=[1-self._r, self._r])
         self.distance = np.zeros(n_cars, dtype=int)
         self.v_min = np.zeros(n_cars, dtype=int)
         self.stability = False
@@ -205,20 +207,25 @@ class StochasticNFS():
         # rule 1
         self.car_velosity = np.min([self.v_max, self.car_velosity+1], axis=0)
         # rule 2
-        """
+        self.anticipation = np.random.choice(self._S, size=self.n_cars, p=[1-self._r, self._r])
         slow_start = np.random.choice([False, True], size=self.n_cars, p=[1-self._q, self._q])
-        i_next = (np.arange(self.n_cars)+self.anticipation) % self.n_cars
+        i = np.arange(self.n_cars)
+        i_next = (i+self.anticipation) % self.n_cars
         distance_anticipation_previous = (self.car_position_previous.take(i_next.astype(int)) - self.car_position_previous) % self.n_cells - self.anticipation
-        velosity = np.min([self.car_velosity*slow_start, distance_anticipation_previous*slow_start], axis=0)
-        self.car_velosity = self.car_velosity*np.invert(slow_start) + velosity
+        distance_anticipation_previous[i_next==i] = self.n_cells
+        #velosity = np.min([self.car_velosity*slow_start, distance_anticipation_previous*slow_start], axis=0)
+        #self.car_velosity = self.car_velosity*np.invert(slow_start) + velosity
+        self.car_velosity = np.min([self.car_velosity, distance_anticipation_previous], axis=0)
         """
         slow_start = np.random.choice([np.inf, 1], size=self.n_cars, p=[1-self._q, self._q])
         i_next = (np.arange(self.n_cars)+self.anticipation) % self.n_cars
         distance_anticipation_previous = (self.car_position_previous.take(i_next.astype(int)) - self.car_position_previous) % self.n_cells - self.anticipation
         distance_anticipation_previous = distance_anticipation_previous.astype(float)*slow_start
         self.car_velosity = np.min([self.car_velosity, distance_anticipation_previous], axis=0).astype(int)
+        """
         # rule 3
         distance_anticipation = (self.car_position.take(i_next) - self.car_position) % self.n_cells - self.anticipation
+        distance_anticipation[i_next==i] = self.n_cells
         self.car_velosity = np.min([self.car_velosity, distance_anticipation], axis=0)
         # rule 4
         random_break = np.random.choice([0,1], size=self.n_cars, p=[self._p, 1-self._p])
@@ -226,7 +233,7 @@ class StochasticNFS():
         # rule 5
         self.distance = np.roll(self.car_position, -1)-self.car_position
         self.distance %= self.n_cells
-        self.car_velosity = np.min([self.car_velosity, self.car_velosity+self.distance-1], axis=0)
+        self.car_velosity = np.min([self.car_velosity, np.roll(self.car_velosity, -1)+self.distance-1], axis=0)
         # rule 6
         self.car_position_previous = self.car_position.copy()
         self.car_position += self.car_velosity.astype(int)
