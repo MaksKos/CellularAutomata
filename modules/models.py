@@ -2,10 +2,8 @@
 version 1.0
 """
 
-from tkinter import N
 import numpy as np
-from regex import I
-from sympy import re
+
 
 class NaSh():
 
@@ -176,7 +174,7 @@ class StochasticNFS():
     _velosity_max = 5
     _S = [1, 2]
 
-    def __init__(self, n_cells: int, n_cars: int, prob={"p":0.5, "q":0.5, "r":0.5}) -> None:
+    def __init__(self, n_cells: int, n_cars: int, prob={"p":0.5, "q":0.5, "r":0.5}, uniform=True) -> None:
         """
         n_cells: size of road in cells
         n_cars: number of cars
@@ -186,16 +184,30 @@ class StochasticNFS():
             r - probability for S
         """
         if n_cars < 2:
-            ValueError("Minimum 2 cars should be get")
+            raise ValueError("Minimum 2 cars should be get")
         self.n_cells = n_cells
         self.n_cars = n_cars
         self._p = prob['p']
         self._q = prob['q']
         self._r = prob['r']
-        self.car_position = np.sort(np.random.choice(n_cells, size=n_cars, replace=False))
+        if uniform:
+            pos = np.arange(n_cars)*(n_cells//n_cars + 1)
+            last = np.random.choice(np.arange(1,n_cells,2), size=sum(pos>=n_cells), replace=False)
+            position = np.hstack((pos, last))
+            position.sort()
+            self.car_position = position[position<n_cells]
+            #self.car_position = np.arange(n_cars)*(n_cells//n_cars + 1)
+            #self.car_position[self.car_position>=n_cells] -=1
+            #self.car_position %= n_cells
+            #self.car_position.sort()
+
+            #self.car_position = np.arange(n_cars) * (n_cells//n_cars)
+
+            #self.car_position = np.sort(np.random.uniform(0, n_cells, n_cars))
+        else:
+            self.car_position = np.sort(np.random.choice(n_cells, size=n_cars, replace=False))
         self.car_position_previous = self.car_position.copy()
         self.car_velosity = np.zeros(n_cars, dtype=int)
-        #self.anticipation = np.random.choice(self._S, size=self.n_cars, p=[1-self._r, self._r])
         self.distance = np.zeros(n_cars, dtype=int)
         self.v_min = np.zeros(n_cars, dtype=int)
         self.stability = False
@@ -213,16 +225,9 @@ class StochasticNFS():
         i_next = (i+self.anticipation) % self.n_cars
         distance_anticipation_previous = (self.car_position_previous.take(i_next.astype(int)) - self.car_position_previous) % self.n_cells - self.anticipation
         distance_anticipation_previous[i_next==i] = self.n_cells
-        #velosity = np.min([self.car_velosity*slow_start, distance_anticipation_previous*slow_start], axis=0)
-        #self.car_velosity = self.car_velosity*np.invert(slow_start) + velosity
-        self.car_velosity = np.min([self.car_velosity, distance_anticipation_previous], axis=0)
-        """
-        slow_start = np.random.choice([np.inf, 1], size=self.n_cars, p=[1-self._q, self._q])
-        i_next = (np.arange(self.n_cars)+self.anticipation) % self.n_cars
-        distance_anticipation_previous = (self.car_position_previous.take(i_next.astype(int)) - self.car_position_previous) % self.n_cells - self.anticipation
-        distance_anticipation_previous = distance_anticipation_previous.astype(float)*slow_start
-        self.car_velosity = np.min([self.car_velosity, distance_anticipation_previous], axis=0).astype(int)
-        """
+        velosity = np.min([self.car_velosity*slow_start, distance_anticipation_previous*slow_start], axis=0)
+        self.car_velosity = np.max([self.car_velosity*np.invert(slow_start), velosity], axis=0)
+        #self.car_velosity = np.min([self.car_velosity, distance_anticipation_previous], axis=0)
         # rule 3
         distance_anticipation = (self.car_position.take(i_next) - self.car_position) % self.n_cells - self.anticipation
         distance_anticipation[i_next==i] = self.n_cells
@@ -319,7 +324,7 @@ def get_flow_auto(n_cars, n_adr, n_cells, prob, time_s, time_r):
     model.system_research(time_r)
     return model.avarage_flow()
 
-def get_flow_S_NFS(n_cars, n_cells, prob, time_s, time_r, v_max=5):
+def get_flow_S_NFS(n_cars, n_cells, prob, time_s, time_r, v_max=5, uniform=True):
     """
     Function for calculate flow of model
     n_cars: number of cars
@@ -328,11 +333,11 @@ def get_flow_S_NFS(n_cars, n_cells, prob, time_s, time_r, v_max=5):
     time_s: time step for stabilize model
     time_r: time step for research model
     """
-    if n_cars < 0:
+    if n_cars < 1:
         return 0
     if n_cars == 1:
         return v_max/n_cells
-    model = StochasticNFS(n_cells, n_cars, prob)
+    model = StochasticNFS(n_cells, n_cars, prob, uniform)
     model.set_max_velosity(v_max)
     model.system_stabilization(time_s)
     model.system_research(time_r)

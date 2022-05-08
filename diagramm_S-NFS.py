@@ -19,19 +19,22 @@ if probability_q > 1 or probability_q < 0:
 v_max = 1
 p = 1.0
 n_cells = 100
-n_density = 2000
+n_density = 100
 prob = {'p':p, "q":probability_q, 'r':probability_r}
 
 time_stabil = 50
-time_research = 51
+time_research = 50
 
-density = np.random.random(n_density)
+#density = np.random.random(n_density)
+density = np.full(100, 0.65)
 cars = np.int_(n_cells*density)
 
-#get_flow_S_NFS(2, n_cells, prob, time_stabil, time_research, v_max)
+#get_flow_S_NFS(60, n_cells, prob, time_stabil, time_research, v_max, True)
 
 flow =  Parallel(n_jobs=CORE, verbose=2)\
-                (delayed(get_flow_S_NFS)(car, n_cells, prob, time_stabil, time_research, v_max) for car in cars)
+                (delayed(get_flow_S_NFS)(car, n_cells, prob, time_stabil, time_research, v_max, True) for car in cars)
+
+
 
 result = {
     'density': density,
