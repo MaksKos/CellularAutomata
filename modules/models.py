@@ -182,6 +182,7 @@ class StochasticNFS():
             p - probability for random breaking
             q - probability for slow to start effect
             r - probability for S
+        uniform: <bool> uniform distribution of cars' position 
         """
         if n_cars < 2:
             raise ValueError("Minimum 2 cars should be get")
@@ -191,19 +192,7 @@ class StochasticNFS():
         self._q = prob['q']
         self._r = prob['r']
         if uniform:
-            pos = np.arange(n_cars)*(n_cells//n_cars + 1)
-            last = np.random.choice(np.arange(1,n_cells,2), size=sum(pos>=n_cells), replace=False)
-            position = np.hstack((pos, last))
-            position.sort()
-            self.car_position = position[position<n_cells]
-            #self.car_position = np.arange(n_cars)*(n_cells//n_cars + 1)
-            #self.car_position[self.car_position>=n_cells] -=1
-            #self.car_position %= n_cells
-            #self.car_position.sort()
-
-            #self.car_position = np.arange(n_cars) * (n_cells//n_cars)
-
-            #self.car_position = np.sort(np.random.uniform(0, n_cells, n_cars))
+            self.car_position = np.arange(n_cars) * (n_cells//n_cars)
         else:
             self.car_position = np.sort(np.random.choice(n_cells, size=n_cars, replace=False))
         self.car_position_previous = self.car_position.copy()
@@ -223,20 +212,23 @@ class StochasticNFS():
         slow_start = np.random.choice([False, True], size=self.n_cars, p=[1-self._q, self._q])
         i = np.arange(self.n_cars)
         i_next = (i+self.anticipation) % self.n_cars
-        distance_anticipation_previous = (self.car_position_previous.take(i_next.astype(int)) - self.car_position_previous) % self.n_cells - self.anticipation
-        distance_anticipation_previous[i_next==i] = self.n_cells
+        distance_anticipation_previous = (self.car_position_previous.take(i_next) - self.car_position_previous + self.n_cells) % self.n_cells - self.anticipation
+        if self.n_cars <= max(self._S):
+            distance_anticipation_previous[i_next==i] = self.n_cells
+        assert distance_anticipation_previous.min() >= 0
         velosity = np.min([self.car_velosity*slow_start, distance_anticipation_previous*slow_start], axis=0)
         self.car_velosity = np.max([self.car_velosity*np.invert(slow_start), velosity], axis=0)
-        #self.car_velosity = np.min([self.car_velosity, distance_anticipation_previous], axis=0)
         # rule 3
-        distance_anticipation = (self.car_position.take(i_next) - self.car_position) % self.n_cells - self.anticipation
-        distance_anticipation[i_next==i] = self.n_cells
+        distance_anticipation = (self.car_position.take(i_next) - self.car_position + self.n_cells) % self.n_cells - self.anticipation
+        if self.n_cars <= max(self._S):
+            distance_anticipation[i_next==i] = self.n_cells
+        assert distance_anticipation.min() >= 0
         self.car_velosity = np.min([self.car_velosity, distance_anticipation], axis=0)
         # rule 4
         random_break = np.random.choice([0,1], size=self.n_cars, p=[self._p, 1-self._p])
         self.car_velosity = np.max([self.v_min, self.car_velosity-random_break], axis=0)
         # rule 5
-        self.distance = np.roll(self.car_position, -1)-self.car_position
+        self.distance = np.roll(self.car_position, -1)-self.car_position + self.n_cells
         self.distance %= self.n_cells
         self.car_velosity = np.min([self.car_velosity, np.roll(self.car_velosity, -1)+self.distance-1], axis=0)
         # rule 6
@@ -291,7 +283,6 @@ class StochasticNFS():
         for step in range(road.shape[0]):
             road[step][self.matrix_position[step]] = self.matrix_velosity[step]
         return road
-
 
 def get_flow(n_cars, n_cells, prob, time_s, time_r):
     """
