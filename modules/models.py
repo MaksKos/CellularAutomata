@@ -299,13 +299,13 @@ class RealisticNFS:
     _r = 0.99
     _S = [1, 2]
     #  probability for random breaking
-    # _p = 0.96
+    _p = 0.9
     _P1 = 0.999
     _P2 = 0.99
     _P3 = 0.98
     _P4 = 0.01
     # dist
-    _D = 15  # 15
+    _D = 5  # 15
 
     def __init__(self, n_cells: int, n_cars: int, uniform=True) -> None:
         """
@@ -418,16 +418,21 @@ class RealisticNFS:
             else:
                 s = 1
 
-            if self.stability:
-                velocity_1 = self._rule_1(i)
-            else:
-                velocity_1 = self._rule_1_stab(i)
+            # if self.stability:
+            #     velocity_1 = self._rule_1(i)
+            # else:
+            #     velocity_1 = self._rule_1_stab(i)
+            velocity_1 = self._rule_1_stab(i)
+
             velocity_2 = self._rule_2(i, velocity_1, s)
             velocity_3 = self._rule_3(i, velocity_2, s)
-            if self.stability:
-                velocity_4 = self._rule_4(i, velocity_3)
-            else:
-                velocity_4 = self._rule_4_stab(i, velocity_3)
+
+            # if self.stability:
+            #     velocity_4 = self._rule_4(i, velocity_3)
+            # else:
+            #     velocity_4 = self._rule_4_stab(i, velocity_3)
+            velocity_4 = self._rule_4_stab(i, velocity_3)
+
             velocity.append(velocity_4)
 
         velocity = self._rule_5(velocity.copy())
@@ -445,7 +450,8 @@ class RealisticNFS:
         velocity_next = self.car_velocity[i_next]
         if (True
             and distance >= self._D
-            and velocity <= velocity_next):
+            and velocity <= velocity_next
+        ):
             return min(self._velocity_max, velocity + 1)
         return velocity
 
@@ -473,15 +479,14 @@ class RealisticNFS:
         i_next = (i + 1) % self.n_cars
         distance = self._get_distance(i, i_next, 1)
         p = self._get_probability(i, i_next, distance)
-        if np.random.random() < 1-p and velocity > 1:
-            return velocity-1
+        if np.random.random() < 1-p and velocity >= 1:
+            return max(velocity-1, 1)
         else:
             return velocity
 
     def _rule_4_stab(self, i, velocity):
         # S-NFS
-        p = 0.5
-        if np.random.random() < 1-p:
+        if np.random.random() < 1-self._p:
             return max(0, velocity-1)
         else:
             return velocity
@@ -570,6 +575,208 @@ class RealisticNFS:
         return road
 
 
+class RevisedNFS:
+    _velocity_max = 5
+    #  probability for slow to start effect
+    _q = 0.99
+    #  probability for S
+    _r = 0.99
+    _S = [1, 2]
+    #  probability for random breaking
+    _p = 0.96
+    _P1 = 0.999
+    _P2 = 0.99
+    _P3 = 0.98
+    _P4 = 0.01
+    # dist
+    _D = 15
+
+    def __init__(self, n_cells: int, n_cars: int, uniform=True) -> None:
+        """
+        n_cells: size of road in cells
+        n_cars: number of cars
+        uniform: <bool> uniform distribution of cars' position
+        """
+        if n_cars < 2:
+            raise ValueError("Minimum 2 cars should be get")
+        self.n_cells = n_cells
+        self.n_cars = n_cars
+        if uniform:
+            self.car_position = np.arange(n_cars) * (n_cells // n_cars)
+        else:
+            self.car_position = np.sort(np.random.choice(n_cells, size=n_cars, replace=False))
+        self.car_position_previous = self.car_position.copy()
+        self.car_velocity = np.zeros(n_cars, dtype=int)
+        # self.distance = np.zeros(n_cars, dtype=int)
+        self.v_min = np.zeros(n_cars, dtype=int)
+        self.stability = False
+        self.matrix_position = None
+        self.matrix_velocity = None
+
+    def step(self):
+
+        velocity = []
+        for i in range(self.n_cars):
+            if np.random.random() <= self._r:
+                s = 2
+            else:
+                s = 1
+
+            if self.stability:
+                 velocity_1 = self._rule_1(i)
+            else:
+                 velocity_1 = self._rule_1_stab(i)
+
+            velocity_2 = self._rule_2(i, velocity_1, s)
+            velocity_3 = self._rule_3(i, velocity_2, s)
+
+            if self.stability:
+                velocity_4 = self._rule_4(i, velocity_3)
+            else:
+                velocity_4 = self._rule_4_stab(i, velocity_3)
+
+            velocity.append(velocity_4)
+
+        velocity = self._rule_5(velocity.copy())
+
+        self.car_velocity = np.array(velocity)
+        self.car_position_previous = self.car_position.copy()
+        self.car_position += self.car_velocity.astype(int)
+        self.car_position %= self.n_cells
+
+    def _rule_1(self, i):
+        """acceleration"""
+        i_next = (i + 1) % self.n_cars
+        distance = self._get_distance(i, i_next, 1)
+        velocity = self.car_velocity[i]
+        velocity_next = self.car_velocity[i_next]
+        if (distance >= self._D
+            or velocity <= velocity_next
+        ):
+            return min(self._velocity_max, velocity + 1)
+        return velocity
+
+    def _rule_1_stab(self, i):
+        # S-NFS
+        velocity = self.car_velocity[i]
+        return min(self._velocity_max, velocity + 1)
+
+    def _rule_2(self, i, velocity, s):
+        """slow-to-start effect"""
+        if np.random.random() > self._q:
+            return velocity
+        i_next = (i + s) % self.n_cars
+        anticipation = self._get_distance_anticipation(i, i_next, s)
+        return min(velocity, anticipation)
+
+    def _rule_3(self, i, velocity, s):
+        """perspective effect"""
+        i_next = (i + s) % self.n_cars
+        distance = self._get_distance(i, i_next, s)
+        return min(velocity, distance)
+
+    def _rule_4(self, i, velocity):
+        """random breaking"""
+        i_next = (i + 1) % self.n_cars
+        distance = self._get_distance(i, i_next, 1)
+        p = self._get_probability(i, i_next, distance)
+        if np.random.random() < 1-p and velocity >= 1:
+            return max(velocity-1, 1)
+        else:
+            return velocity
+
+    def _rule_4_stab(self, i, velocity):
+        # S-NFS
+        if np.random.random() < 1-self._p:
+            return max(0, velocity-1)
+        else:
+            return velocity
+
+    def _rule_5(self, velocity):
+        """collision avoidance"""
+        velocity_result = []
+        for i in range(self.n_cars):
+            i_next = (i + 1) % self.n_cars
+            distance = self._get_distance(i, i_next, 1)
+            velocity_result.append(min(
+                velocity[i], distance + velocity[i_next]
+            ))
+        return velocity_result
+
+    def _get_distance(self, i, i_next, s):
+        distance = (self.car_position[i_next] - self.car_position[i] - s)
+        return distance + self.n_cells if distance < 0 else distance
+
+    def _get_distance_anticipation(self, i, i_next, s):
+        distance = (self.car_position_previous[i_next] - self.car_position_previous[i] - s)
+        return distance + self.n_cells if distance < 0 else distance
+
+    def _get_probability(self, i, i_next, distance):
+        if distance >= self._D:
+            return self._P1
+        velocity = int(self.car_velocity[i])
+        velocity_next = int(self.car_velocity[i_next])
+        if velocity < velocity_next:
+            return self._P2
+        if velocity == velocity_next:
+            return self._P3
+        return self._P4
+
+    def set_max_velocity(self, v_max: int) -> None:
+        self._velocity_max = v_max
+        self.v_max = np.full(self.n_cars, self._velocity_max, dtype=int)
+
+    def system_stabilization(self, n_step: int):
+        """
+        Stabilizes system
+        n_step: time step for stabilization
+        Recommend choose n_step = 10*n_cells
+        """
+        for i in range(n_step):
+            self.step()
+        self.stability = True
+
+    def system_research(self, n_step: int):
+        """
+        Method save information about cars position and velocity
+        n_step: time step for system research
+        """
+        if not self.stability:
+            print("Model hasn't stabilizes")
+        self.matrix_position = np.zeros((n_step, self.n_cars), dtype=int)
+        self.matrix_velocity = np.zeros((n_step, self.n_cars), dtype=int)
+        for step in range(n_step):
+            self.matrix_position[step] = self.car_position
+            self.step()
+            self.matrix_velocity[step] = self.car_velocity
+
+    def average_flow(self):
+        """Calculate average flow of model"""
+        if self.matrix_velocity is None:
+            raise ValueError("Research system before calculate flow")
+        return self.matrix_velocity.sum() / self.matrix_velocity.shape[0] / self.n_cells
+
+    def average_velocity(self):
+        if self.matrix_velocity is None:
+            raise ValueError("Research system before calculate flow")
+        return self.matrix_velocity.sum() / self.matrix_velocity.shape[0] / self.n_cars
+
+    def diagram_x_t(self):
+        """
+        Method make matrix of road
+        size [n_cells, time step research]
+        if cell is empty -> None
+        if cell with cars -> value of car's velocity
+        """
+        if self.matrix_position is None or self.matrix_velocity is None:
+            raise ValueError("Research system before calculate flow")
+        road = np.full((self.matrix_position.shape[0], self.n_cells), np.nan)
+        for step in range(road.shape[0]):
+            road[step][self.matrix_position[step]] = self.matrix_velocity[step]
+        return road
+
+
+
 def get_flow(n_cars, n_cells, prob, time_s, time_r):
     """
     Function for calculate flow of model
@@ -623,7 +830,7 @@ def get_flow_S_NFS(n_cars, n_cells, prob, time_s, time_r, v_max=5, uniform=True)
     return model.avarage_flow()
 
 
-def get_flow_s_nfs_real(n_cars, n_cells, time_s, time_r, v_max=5, uniform=True):
+def get_flow_s_nfs_real(n_cars, n_cells, time_s_1, time_s_2, time_r, v_max=5, uniform=True):
     """
     Function for calculate flow of model
     n_cars: number of cars
@@ -635,10 +842,9 @@ def get_flow_s_nfs_real(n_cars, n_cells, time_s, time_r, v_max=5, uniform=True):
         return (0, 0)
     if n_cars == 1:
         return (v_max / n_cells, v_max)
-
-    model = RealisticNFS(n_cells, n_cars, uniform)
+    model = RevisedNFS(n_cells, n_cars, uniform)
+    model.stability = True
     model.set_max_velocity(v_max)
-    model.system_stabilization(time_s)
-    model.system_stabilization(time_s)
+    model.system_stabilization(time_s_1)
     model.system_research(time_r)
     return (model.average_flow(), model.average_velocity())
