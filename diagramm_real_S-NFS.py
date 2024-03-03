@@ -18,10 +18,11 @@ time_research = 50
 file_name = f"data/revised_snfs_cells_{n_cells}_points_{n_density}_time_{time_research}.csv"
 
 density = np.random.random(n_density)
-density_start = np.linspace(0, 0.08, 100)
-density = np.hstack([density_start, density])
+# density_start = np.linspace(0, 0.08, 100)
+# density = np.hstack([density_start, density])
 cars = np.int_(n_cells*density)
- 
+
+#(n_cars, n_cells, time_s, time_r, v_max=5, uniform=True)
 result = Parallel(n_jobs=CORE, verbose=2)(
     delayed(get_flow_s_nfs_real)
     (car, n_cells, time_stabilisation, time_research, v_max, True)

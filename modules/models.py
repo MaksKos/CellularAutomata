@@ -291,7 +291,7 @@ class StochasticNFS():
         return self.matrix_velosity.sum() / self.matrix_velosity.shape[0] / self.n_cars
 
 
-class RealisticNFS:
+class RealisticNFS_old:
     _velocity_max = 5
     #  probability for slow to start effect
     _q = 0.99
@@ -830,7 +830,7 @@ def get_flow_S_NFS(n_cars, n_cells, prob, time_s, time_r, v_max=5, uniform=True)
     return model.avarage_flow()
 
 
-def get_flow_s_nfs_real(n_cars, n_cells, time_s_1, time_s_2, time_r, v_max=5, uniform=True):
+def get_flow_s_nfs_real(n_cars, n_cells, time_s, time_r, v_max=5, uniform=True):
     """
     Function for calculate flow of model
     n_cars: number of cars
@@ -845,6 +845,6 @@ def get_flow_s_nfs_real(n_cars, n_cells, time_s_1, time_s_2, time_r, v_max=5, un
     model = RevisedNFS(n_cells, n_cars, uniform)
     model.stability = True
     model.set_max_velocity(v_max)
-    model.system_stabilization(time_s_1)
+    model.system_stabilization(time_s)
     model.system_research(time_r)
     return (model.average_flow(), model.average_velocity())
