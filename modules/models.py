@@ -622,19 +622,10 @@ class RevisedNFS:
             else:
                 s = 1
 
-            if self.stability:
-                 velocity_1 = self._rule_1(i)
-            else:
-                 velocity_1 = self._rule_1_stab(i)
-
+            velocity_1 = self._rule_1(i)
             velocity_2 = self._rule_2(i, velocity_1, s)
             velocity_3 = self._rule_3(i, velocity_2, s)
-
-            if self.stability:
-                velocity_4 = self._rule_4(i, velocity_3)
-            else:
-                velocity_4 = self._rule_4_stab(i, velocity_3)
-
+            velocity_4 = self._rule_4(i, velocity_3)
             velocity.append(velocity_4)
 
         velocity = self._rule_5(velocity.copy())
@@ -655,11 +646,6 @@ class RevisedNFS:
         ):
             return min(self._velocity_max, velocity + 1)
         return velocity
-
-    def _rule_1_stab(self, i):
-        # S-NFS
-        velocity = self.car_velocity[i]
-        return min(self._velocity_max, velocity + 1)
 
     def _rule_2(self, i, velocity, s):
         """slow-to-start effect"""
@@ -682,13 +668,6 @@ class RevisedNFS:
         p = self._get_probability(i, i_next, distance)
         if np.random.random() < 1-p and velocity >= 1:
             return max(velocity-1, 1)
-        else:
-            return velocity
-
-    def _rule_4_stab(self, i, velocity):
-        # S-NFS
-        if np.random.random() < 1-self._p:
-            return max(0, velocity-1)
         else:
             return velocity
 

@@ -2,7 +2,7 @@
 import joblib
 import pandas as pd
 import numpy as np
-from modules.models import get_flow_s_nfs_real, RealisticNFS
+from modules.models import get_flow_s_nfs_real
 from joblib import Parallel, delayed
 
 CORE = joblib.cpu_count()-2
@@ -12,10 +12,11 @@ v_max = 5
 n_cells = 1000
 n_density = 2000
 
-time_stabilisation = 50
+time_stabilisation = 400
 time_research = 50
 
-file_name = f"data/revised_snfs_cells_{n_cells}_points_{n_density}_time_{time_research}.csv"
+file_name = (f"data/revised_snfs_cells_{n_cells}_points_{n_density}"
+             f"_stab_{time_stabilisation}_time_{time_research}.csv")
 
 density = np.random.random(n_density)
 # density_start = np.linspace(0, 0.08, 100)
